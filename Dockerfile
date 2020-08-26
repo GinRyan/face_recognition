@@ -2,6 +2,17 @@
 
 FROM python:3.6-slim-stretch
 
+RUN apt-get install ca-certificates
+
+RUN cat /etc/apt/sources.list   && \
+    mv /etc/apt/sources.list /etc/apt/sources.list.backup && \
+    echo 'deb http://mirrors.tuna.tsinghua.edu.cn/debian/ stretch main contrib non-free' >>/etc/apt/sources.list && \
+    echo 'deb http://mirrors.tuna.tsinghua.edu.cn/debian/ stretch-updates main contrib non-free' >>/etc/apt/sources.list && \
+    echo 'deb http://mirrors.tuna.tsinghua.edu.cn/debian/ stretch-backports main contrib non-free' >>/etc/apt/sources.list && \
+    echo '=================show sources==============' && \
+    cat /etc/apt/sources.list 
+	
+
 RUN apt-get -y update
 RUN apt-get install -y --fix-missing \
     build-essential \
