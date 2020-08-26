@@ -54,7 +54,8 @@ RUN cd ~ && \
 
 COPY . /root/face_recognition
 RUN cd /root/face_recognition && \
-    pip3 install -r requirements.txt && \
+    pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/    && \
+    pip3 install -r requirements.txt   && \
     python3 setup.py install
 
 CMD cd /root/face_recognition/examples && \
