@@ -1,0 +1,1 @@
+docker build . -f ./Dockerfile.base -t facerecog-base:0.1
