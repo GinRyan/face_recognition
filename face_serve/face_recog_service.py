@@ -1,5 +1,6 @@
 from flask import Flask
 from datetime import datetime
+import face_recognition as face
 import re
 
 app = Flask(__name__)

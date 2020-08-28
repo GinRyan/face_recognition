@@ -1,1 +1,1 @@
-docker build . -f ./Dockerfile.base -t facerecog-base:0.1
+docker build . -f ./Dockerfile.base -t registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog:0.1-base

@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM facerecog-base:0.1
+FROM registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog:0.1-cloudbuild
 
 EXPOSE 10000
 
@@ -21,4 +21,4 @@ RUN useradd appuser && chown -R appuser /app
 USER appuser
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "face_recog_service:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "face_serve.face_recog_service:app"]

@@ -1,4 +1,4 @@
-FROM facerecog-base:0.1
+FROM registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog:0.1-cloudbuild
 
 EXPOSE 10000
 
@@ -6,7 +6,7 @@ COPY .  /app
 
 WORKDIR /app
 
-ENV FLASK_APP=face_recog_service.py \
+ENV FLASK_APP=face_serve/face_recog_service.py \
     FLASK_ENV=development \
     FLASK_DEBUG=1
 
