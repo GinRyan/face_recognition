@@ -20,7 +20,7 @@
 			],
 			"dockerRun": {
 				"env": {
-					"FLASK_APP": "src/face_recog_service.py"
+					"FLASK_APP": "face_recog_service.py"
 				}
 			},
 			"python": {

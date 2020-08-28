@@ -1,1 +1,0 @@
-docker build .  -t face_recog:0.0.1-prod -f Dockerfile

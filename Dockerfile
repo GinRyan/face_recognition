@@ -1,13 +1,24 @@
+# For more information, please refer to https://aka.ms/vscode-docker-python
 FROM facerecog-base:0.1
 
 EXPOSE 10000
 
-COPY .  /app
+# Keeps Python from generating .pyc files in the container
+ENV PYTHONDONTWRITEBYTECODE 1
 
+# Turns off buffering for easier container logging
+ENV PYTHONUNBUFFERED 1
+
+
+ADD . /app
 WORKDIR /app
 
-ENV FLASK_APP=face_recog_service.py \
-    FLASK_ENV=production \
-    FLASK_DEBUG=0 
+# Install pip requirements
+RUN python -m pip install -r requirements.txt
 
-ENTRYPOINT [ "python3" , "-m" , "flask" , "run" , "--host=0.0.0.0" , "--port=10000"] 
+# Switching to a non-root user, please refer to https://aka.ms/vscode-docker-python-user-rights
+RUN useradd appuser && chown -R appuser /app
+USER appuser
+
+# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "face_recog_service:app"]
