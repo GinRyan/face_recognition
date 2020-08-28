@@ -1,4 +1,13 @@
 FROM facerecog-base:0.1
 
-CMD cd /root/face_recognition/examples && \
-    python3 recognize_faces_in_pictures.py
+EXPOSE 10000
+
+COPY .  /app
+
+WORKDIR /app
+
+ENV FLASK_APP=face_recog_service.py \
+    FLASK_ENV=production \
+    FLASK_DEBUG=0 
+
+ENTRYPOINT [ "python3" , "-m" , "flask" , "run" , "--host=0.0.0.0" , "--port=10000"] 
