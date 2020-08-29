@@ -2,12 +2,14 @@ version: '3'
 
 services: 
   face_app:
+    container_name: face_app
     image: registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog-serve:0.0.1-debug
     ports: 
       - 10000:10000
     environment: 
       USE_MINIO: 1
   redis:
+    container_name: redis_db
     image: redis:alpine
     container_name: redis
     restart: always
@@ -19,7 +21,7 @@ services:
 
   #以下是分布式存储
   minio1:
-    hostname: minio_host
+    container_name: minio1
     image: minio/minio
     volumes:
       - data1-1:/data1
@@ -37,6 +39,7 @@ services:
       retries: 3
 
   minio2:
+    container_name: minio2
     image: minio/minio
     volumes:
       - data2-1:/data1
@@ -54,6 +57,7 @@ services:
       retries: 3
 
   minio3:
+    container_name: minio3
     image: minio/minio
     volumes:
       - data3-1:/data1
@@ -71,6 +75,7 @@ services:
       retries: 3
 
   minio4:
+    container_name: minio4
     image: minio/minio
     volumes:
       - data4-1:/data1

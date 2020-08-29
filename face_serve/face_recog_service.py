@@ -5,14 +5,15 @@ from flask import Flask, jsonify, request, redirect
 import pickle as pkl
 import os
 from werkzeug.utils import secure_filename
-
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+                         BucketAlreadyExists)
 # 分布式存储minio客户端读取器
 from . import minioClient
 from . import user_face_image_bucket
 # You can change this to any folder on your system
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 USE_MINIO = os.environ['USE_MINIO']
-
+UPLOAD_FILE_DIR = '/var/www/upload/'
 app = Flask(__name__)
 
 
@@ -44,7 +45,7 @@ def hello_there(name):
     return content
 
 
-@app.route("/upload/<name>", methods = ['GET', 'POST'])
+@app.route("/upload/<name>", methods=['GET', 'POST'])
 def upload_image_file(name):
     ret = {'msg': '', 'code': 0}
     if request.method == 'POST':
@@ -54,21 +55,24 @@ def upload_image_file(name):
             return jsonify(ret)
 
         uploaded_file = request.files['file']
-        
+
         filename = uploaded_file.filename
 
         if filename == '':
             filename = name + '.unknown'
             ret['code'] = -1
-            ret['msg'] =  'File ' + filename + ' not a allowed file.'
+            ret['msg'] = 'File ' + filename + ' not a allowed file.'
             return jsonify(ret)
 
         if uploaded_file and allowed_file(filename):
             filename = str(datetime.now()) + "_" + secure_filename(filename)
-            tmpfile = '/var/www/upload/' + filename
+            if not os.path.exists(UPLOAD_FILE_DIR):
+                os.makedirs(UPLOAD_FILE_DIR)
+            tmpfile = UPLOAD_FILE_DIR + filename
+
             print('Save temp file: ' + tmpfile)
             uploaded_file.save(tmpfile)
-            ret = defect_face_and_save_file(name, tmpfile, uploaded_file.mimetype)
+            ret = defect_face_and_save_file(name, filename, tmpfile, uploaded_file.mimetype)
             return ret
     elif request.method == 'GET':
         ret['code'] = -10
@@ -76,8 +80,7 @@ def upload_image_file(name):
         return jsonify(ret)
 
 
-        
-def defect_face_and_save_file(name, face_image_file, mimetype):
+def defect_face_and_save_file(name, filename, face_image_file, mimetype):
     '''
     根据给定的图片文件检测脸并且存在命名为name的目录中。
 
@@ -104,11 +107,22 @@ def defect_face_and_save_file(name, face_image_file, mimetype):
         ret['code'] = 0
         ret['infer'] = 'Unknown face.'
         # 1、存储这张脸的图片(opt: 可切换开关)
-        if USE_MINIO == 1 or USE_MINIO == True:
-            bucket_exist = minioClient.bucket_exists(user_face_image_bucket)
-            if bucket_exist:
-                minioClient.fput_object(bucket_name=user_face_image_bucket, object_name=name, file_path=face_image_file, content_type=mimetype)
-        
+        # if USE_MINIO == 1 or USE_MINIO == True:
+        bucket_exist = minioClient.bucket_exists(user_face_image_bucket)
+        if not bucket_exist:
+            minioClient.make_bucket(user_face_image_bucket)
+        try:
+            minioClient.fput_object(bucket_name=user_face_image_bucket, object_name=name + "/" + filename, file_path=face_image_file, content_type=mimetype)
+            ret['code'] = 0
+            ret['msg'] = "File saved!"
+        except ResponseError as err:
+            print(err)
+            ret['code'] = -3
+            ret['msg'] = err.message
+            return jsonify(ret)
+        print('MinIO put file ok.:.:' + face_image_file)
+
+        # 调用make_bucket来创建一个存储桶。
         # 2、存储这张脸的图片的128维脸部描述符编码
 
         return jsonify(ret)
