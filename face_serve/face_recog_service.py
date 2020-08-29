@@ -44,27 +44,39 @@ def hello_there(name):
     return content
 
 
-@app.route("/upload/<name>")
+@app.route("/upload/<name>", methods = ['GET', 'POST'])
 def upload_image_file(name):
+    ret = {'msg': '', 'code': 0}
     if request.method == 'POST':
         if 'file' not in request.files:
-            return "Lack of 'file' ;_; "
+            ret['code'] = -1
+            ret['msg'] = "Lack of 'file' ;_; "
+            return jsonify(ret)
 
-        file = request.files['file']
-        filename = file.filename
+        uploaded_file = request.files['file']
+        
+        filename = uploaded_file.filename
 
         if filename == '':
             filename = name + '.unknown'
-            return 'File ' + filename + ' not a allowed file.'
-        if file and allowed_file(filename):
+            ret['code'] = -1
+            ret['msg'] =  'File ' + filename + ' not a allowed file.'
+            return jsonify(ret)
+
+        if uploaded_file and allowed_file(filename):
             filename = str(datetime.now()) + "_" + secure_filename(filename)
             tmpfile = '/var/www/upload/' + filename
             print('Save temp file: ' + tmpfile)
-            file.save(tmpfile)
-            ret = defect_face_and_save_file(name, tmpfile, file.mimetype)
+            uploaded_file.save(tmpfile)
+            ret = defect_face_and_save_file(name, tmpfile, uploaded_file.mimetype)
             return ret
+    elif request.method == 'GET':
+        ret['code'] = -10
+        ret['msg'] = "You have to use POST method."
+        return jsonify(ret)
 
 
+        
 def defect_face_and_save_file(name, face_image_file, mimetype):
     '''
     根据给定的图片文件检测脸并且存在命名为name的目录中。

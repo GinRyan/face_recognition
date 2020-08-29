@@ -5,7 +5,8 @@ services:
     image: registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog-serve:0.0.1-debug
     ports: 
       - 10000:10000
-
+    environment: 
+      USE_MINIO: 1
   redis:
     image: redis:alpine
     container_name: redis

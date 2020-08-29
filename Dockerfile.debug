@@ -2,7 +2,7 @@ FROM registry.cn-hangzhou.aliyuncs.com/sakamoto/face-recog:0.1-cloudbuild
 
 EXPOSE 10000
 
-COPY .  /app
+ADD .  /app
 
 WORKDIR /app
 
