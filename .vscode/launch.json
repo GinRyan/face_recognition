@@ -10,14 +10,17 @@
             "request": "launch",
             "module": "flask",
             "env": {
-                "FLASK_APP": "face_recog_service.py",
+                "USE_MINIO": "1",
+                "FLASK_APP": "face_serve/face_recog_service.py",
                 "FLASK_ENV": "development",
                 "FLASK_DEBUG": "0"
             },
             "args": [
                 "run",
                 "--no-debugger",
-                "--no-reload"
+                "--no-reload",
+                "--host=0.0.0.0",
+                "--port=10000"
             ],
             "jinja": true
         },
@@ -27,21 +30,6 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
-        },
-        {
-            "name": "Docker: Python - Flask",
-            "type": "docker",
-            "request": "launch",
-            "preLaunchTask": "docker-run: debug",
-            "python": {
-                "pathMappings": [
-                    {
-                        "localRoot": "${workspaceFolder}",
-                        "remoteRoot": "/app"
-                    }
-                ],
-                "projectType": "flask"
-            }
         }
     ]
 }

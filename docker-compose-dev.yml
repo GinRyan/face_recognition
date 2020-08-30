@@ -9,7 +9,6 @@ services:
     environment: 
       USE_MINIO: 1
   redis:
-    container_name: redis_db
     image: redis:alpine
     container_name: redis
     restart: always
