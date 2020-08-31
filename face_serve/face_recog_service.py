@@ -9,6 +9,8 @@ from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
 # 分布式存储minio客户端读取器
 from . import minioClient
+from . import redisConn
+from . import pipeline
 from . import user_face_image_bucket
 # You can change this to any folder on your system
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -91,6 +93,9 @@ def defect_face_and_save_file(name, filename, face_image_file, mimetype):
     '''
     ret = {'msg': '', 'code': 0}
     imagedata = face.load_image_file(face_image_file)
+    '''
+    图片里多少张脸
+    '''
     faces_count = len(face.face_locations(imagedata))
     if faces_count == 0:
         ret['msg'] = 'No face detected!'
@@ -107,22 +112,26 @@ def defect_face_and_save_file(name, filename, face_image_file, mimetype):
         ret['code'] = 0
         ret['infer'] = 'Unknown face.'
         # 1、存储这张脸的图片(opt: 可切换开关)
-        # if USE_MINIO == 1 or USE_MINIO == True:
-        bucket_exist = minioClient.bucket_exists(user_face_image_bucket)
-        if not bucket_exist:
-            minioClient.make_bucket(user_face_image_bucket)
-        try:
-            minioClient.fput_object(bucket_name=user_face_image_bucket, object_name=name + "/" + filename, file_path=face_image_file, content_type=mimetype)
-            ret['code'] = 0
-            ret['msg'] = "File saved!"
-        except ResponseError as err:
-            print(err)
-            ret['code'] = -3
-            ret['msg'] = err.message
-            return jsonify(ret)
-        print('MinIO put file ok.:.:' + face_image_file)
+        if USE_MINIO == "1":
+            # 调用make_bucket来创建一个存储桶。
+            bucket_exist = minioClient.bucket_exists(user_face_image_bucket)
+            if not bucket_exist:
+                minioClient.make_bucket(user_face_image_bucket)
+            try:
+                minioClient.fput_object(bucket_name=user_face_image_bucket, object_name=name + "/" + filename, file_path=face_image_file, content_type=mimetype)
+                ret['code'] = 0
+                ret['msg'] = "File saved!"
+            except ResponseError as err:
+                print(err)
+                ret['code'] = -3
+                ret['msg'] = err.message
+                return jsonify(ret)
+            print('MinIO put file ok.:.:' + face_image_file)
 
-        # 调用make_bucket来创建一个存储桶。
         # 2、存储这张脸的图片的128维脸部描述符编码
+        uploaded_face_encoding_description = face.face_encodings(imagedata)[0]
 
+        #redisConn.lpush(name=name,uploaded_face_encoding_description )
+
+        ret['code'] = uploaded_face_encoding_description
         return jsonify(ret)
