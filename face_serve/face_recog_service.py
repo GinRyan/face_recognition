@@ -143,7 +143,7 @@ def defect_face_and_save_file(name, filename, face_image_file, mimetype):
 
         for face_code in faces_encode_codes:
             face_code_list = json.loads(face_code)
-            face_code_np = np.ndarray(face_code_list)
+            face_code_np = np.array(face_code_list)
             face_code_in_db.append(face_code_np)
 
         detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
