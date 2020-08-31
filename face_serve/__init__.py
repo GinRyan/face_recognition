@@ -18,6 +18,6 @@ user_face_image_bucket = 'userfaceimage'
 '''
 Redis 客户端连接
 '''
-redisConn = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)   
+redisConn = redis.StrictRedis(host='redis', port=6379, decode_responses=True)   
 pipeline = redisConn.pipeline(transaction=True)
 

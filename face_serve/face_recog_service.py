@@ -2,11 +2,13 @@ from datetime import datetime
 import face_recognition as face
 import re
 from flask import Flask, jsonify, request, redirect
-import pickle as pkl
+import json
 import os
+import numpy as np
 from werkzeug.utils import secure_filename
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
+
 # 分布式存储minio客户端读取器
 from . import minioClient
 from . import redisConn
@@ -15,7 +17,7 @@ from . import user_face_image_bucket
 # You can change this to any folder on your system
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 USE_MINIO = os.environ['USE_MINIO']
-UPLOAD_FILE_DIR = '/var/www/upload/'
+UPLOAD_FILE_DIR = '~/app_data/upload/'
 app = Flask(__name__)
 
 
@@ -129,9 +131,34 @@ def defect_face_and_save_file(name, filename, face_image_file, mimetype):
             print('MinIO put file ok.:.:' + face_image_file)
 
         # 2、存储这张脸的图片的128维脸部描述符编码
+        face_key_name = "face:"+name
         uploaded_face_encoding_description = face.face_encodings(imagedata)[0]
+        uplist = uploaded_face_encoding_description.tolist()
 
-        #redisConn.lpush(name=name,uploaded_face_encoding_description )
+        # 第一步，先从同名用户中取出特征码进行比对
+        step1Count = redisConn.llen(face_key_name)
+        faces_encode_codes = redisConn.lrange(face_key_name, 0, step1Count)
 
-        ret['code'] = uploaded_face_encoding_description
+        face_code_in_db = []
+
+        for face_code in faces_encode_codes:
+            face_code_list = json.loads(face_code)
+            face_code_np = np.ndarray(face_code_list)
+            face_code_in_db.append(face_code_np)
+
+        detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
+        if len(detected_faces) > 0:
+            ret['code'] = 1
+            ret['msg'] = 'Found!'
+            ret['name'] = name
+            return jsonify(ret)
+
+        # 第二步，如果第一步找不到，再从其他用户面部特征码中寻找和比对
+
+
+
+        # 第三步，如果都找不到，就存入用户脸编码
+        userface_encoded = json.dumps(uplist)
+        redisConn.lpush(face_key_name, userface_encoded)
+
         return jsonify(ret)
