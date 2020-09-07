@@ -81,7 +81,7 @@ def save_file_and_encode(name, filename, face_image_file, mimetype):
 
         ret['msg'] = 'Success!'
         ret['code'] = 0
-        ret['infer'] = 'Unknown face.'
+        ret['infer'] = 'Face saved.'
         # 1、存储这张脸的图片(opt: 可切换开关)
         if USE_MINIO == "1":
             # 调用make_bucket来创建一个存储桶。
