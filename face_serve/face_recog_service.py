@@ -125,7 +125,7 @@ def upload_image_file(name):
 
         if filename == '':
             filename = name + '.unknown'
-            ret['code'] = -1
+            ret['code'] = -3
             ret['msg'] = 'File ' + filename + ' not a allowed file.'
             return jsonify(ret)
 
@@ -140,9 +140,14 @@ def upload_image_file(name):
             ret = save_file_and_encode(name, filename, tmpfile, uploaded_file.mimetype)
             return ret
     elif request.method == 'GET':
-        ret['code'] = -10
+        ret['code'] = -4
         ret['msg'] = "You have to use POST method."
         return jsonify(ret)
+
+
+@app.route("/determine/", methods=['POST'])
+def determine_who_noname():
+    return determine_who('')
 
 
 @app.route("/determine/<name>", methods=['POST'])
@@ -160,7 +165,7 @@ def determine_who(name):
 
         if filename == '':
             filename = name + '.unknown'
-            ret['code'] = -1
+            ret['code'] = -3
             ret['msg'] = 'File ' + filename + ' not a allowed file.'
             return jsonify(ret)
 
@@ -175,7 +180,7 @@ def determine_who(name):
             ret = encode_and_determine(name, filename, tmpfile, uploaded_file.mimetype)
             return ret
     elif request.method == 'GET':
-        ret['code'] = -10
+        ret['code'] = -4
         ret['msg'] = "You have to use POST method."
         return jsonify(ret)
 
@@ -189,12 +194,12 @@ def encode_and_determine(name, filename, face_image_file, mimetype):
     faces_count = len(face.face_locations(imagedata))
     if faces_count == 0:
         ret['msg'] = 'No face detected!'
-        ret['code'] = -1
+        ret['code'] = -2
         return jsonify(ret)
 
     elif faces_count > 1:
         ret['msg'] = 'Multi faces detected!'
-        ret['code'] = -2
+        ret['code'] = -5
         return jsonify(ret)
 
     elif faces_count == 1:
@@ -202,79 +207,47 @@ def encode_and_determine(name, filename, face_image_file, mimetype):
         ret['code'] = 0
         ret['infer'] = 'Unknown face.'
     '''
-    1、如果name不为空，首先取出文件并且获取特征码
+    1、如果name为空，则不按照特定用户信息去获取人脸
     '''
-    if name != None and name != '':
-        face_key_name = "face:"+name
-        '''
-        编码上传的图片待比对
-        '''
-        uploaded_face_encoding_description = face.face_encodings(imagedata)[0]
+    if name == None or name == '':
+        name = "*"
+    
+    face_key_name = "face:"+name
+    '''
+    编码上传的图片待比对
+    '''
+    uploaded_face_encoding_description = face.face_encodings(imagedata)[0]
 
-        '''
-        读出库中的同名面部所有编码
-        '''
-        step1Count = redisConn.llen(face_key_name)
-        faces_encode_codes = redisConn.lrange(face_key_name, 0, step1Count)
-        face_code_in_db = []
+    '''
+    读出库中的同名面部所有编码
+    '''
+    step1Count = redisConn.llen(face_key_name)
+    faces_encode_codes = redisConn.lrange(face_key_name, 0, step1Count)
+    face_code_in_db = []
 
-        for face_code in faces_encode_codes:
-            face_code_vector = json.loads(face_code)
-            face_code_np = np.array(face_code_vector)
-            face_code_in_db.append(face_code_np)
-        '''
-        开始比对是否和同名编码相同
-        '''
-        detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
-        if len(detected_faces) > 0:
-            for detect_face_code in detected_faces:
-                if detect_face_code:
-                    ret['code'] = 1
-                    ret['msg'] = 'Found In Given Name!'
-                    ret['infer'] = name
-                    return jsonify(ret)
+    for face_code in faces_encode_codes:
+        face_code_vector = json.loads(face_code)
+        face_code_np = np.array(face_code_vector)
+        face_code_in_db.append(face_code_np)
+    '''
+    开始比对是否和同名编码相同
+    '''
+    detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
+    if len(detected_faces) > 0:
+        for detect_face_code in detected_faces:
+            if detect_face_code:
+                ret['code'] = 1
+                ret['msg'] = 'Found In Given Name! name: ' + name + " counts: " + str(len(detected_faces))
+                ret['infer'] = name
+                return jsonify(ret)
+        else:
+            ret['code'] = -6
+            ret['msg'] = 'No fit face found!'
+            ret['infer'] = None
+            return jsonify(ret)
 
-
-    # 2、然后取出数据库中的特征码进行比对
-        # 第一步，先从同名用户中取出特征码进行比对
-        # step1Count = redisConn.llen(face_key_name)
-        # faces_encode_codes = redisConn.lrange(face_key_name, 0, step1Count)
-
-        # face_code_in_db = []
-
-        # for face_code in faces_encode_codes:
-        #     face_code_vector = json.loads(face_code)
-        #     face_code_np = np.array(face_code_vector)
-        #     face_code_in_db.append(face_code_np)
-
-        # detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
-        # if len(detected_faces) > 0:
-        #     ret['code'] = 1
-        #     ret['msg'] = 'Found In Given Name!'
-        #     ret['infer'] = name
-        #     return jsonify(ret)
-
-        # # 第二步，如果第一步找不到，再从其他用户面部特征码中寻找和比对
-        # elif len(detected_faces) == 0:
-        #     face_code_in_db = []
-        #     name_list = redisConn.keys('face:*')
-        #     for name_in_db in name_list:
-        #         name_encoded_face = redisConn.lindex(name_in_db, 0)
-
-        #         face_code_vector = json.loads(name_encoded_face)
-        #         face_code_np = np.array(face_code_vector)
-        #         face_code_in_db.append(face_code_np)
-
-        #     detected_faces = face.compare_faces(face_code_in_db, uploaded_face_encoding_description)
-
-        #     for i, detected_face in enumerate(detected_faces):
-        #         if detected_face:
-        #             ret['code'] = 1
-        #             ret['msg'] = 'Found In All Names!'
-        #             ret['oneshot'] = detected_face
-        #             ret['infer'] = name_list[i]
-        #             return jsonify(ret)
-
-        #     ret['code'] = 0
-        #     ret['msg'] = 'Not Found In All Names!'
-        #     ret['infer'] = len(name_list)
+    else:
+        ret['code'] = -6
+        ret['msg'] = 'No face in the image!'
+        ret['infer'] = None
+        return jsonify(ret)
